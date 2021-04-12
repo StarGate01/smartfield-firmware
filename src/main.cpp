@@ -10,7 +10,6 @@
 #include "HardwareConfiguration.h"
 #include "NetworkConfiguration.h"
 
-#include "LowPower.h" // Sleep mode
 #include "CubeCell_NeoPixel.h" // RGB LED
 #include "LoRaWan_APP.h" // LoRa WAN
 

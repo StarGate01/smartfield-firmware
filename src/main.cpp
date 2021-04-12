@@ -23,7 +23,7 @@ CubeCell_NeoPixel rgbLED(1, RGB, NEO_GRB + NEO_KHZ800);
 uint8_t devEui[8]; //!< Generated from hardware id
 uint8_t appEui[] = TTN_APP_EUI;
 uint8_t appKey[] = TTN_APP_KEY;
-uint8_t nwkSKey[16] = { 0 };; //!< Unused in OTAA mode
+uint8_t nwkSKey[16] = { 0 }; //!< Unused in OTAA mode
 uint8_t appSKey[16] = { 0 }; //!< Unused in OTAA mode
 uint32_t devAddr = 0; //!< Unused in OTAA mode
 // Allow channels 0-7; EU868 uses 0-9 only, CN470 uses 0-95 and so on

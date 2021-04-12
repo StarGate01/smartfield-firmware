@@ -11,3 +11,7 @@ Firmware for a smart garden plot, based on a HTCC-AB01 LoRa board.
 ## Development setup
 
 Install **Visual Studio Code** and the **PlatformIO** extension.
+
+Copy `include/NetworkConfiguration.h.example` to `include/NetworkConfiguration.h` and insert your [*The Things Network*](https://www.thethingsnetwork.org) configuration. 
+
+Use the PlatformIO menu to compile and upload the code.

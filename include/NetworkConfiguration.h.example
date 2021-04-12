@@ -6,8 +6,6 @@
  * @date 2021-04-12
  */
 
-#include "Arduino.h"
-
 #ifndef NETWORK_CONFIGURATION_H
 #define NETWORK_CONFIGURATION_H
 

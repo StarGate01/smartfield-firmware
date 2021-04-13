@@ -92,6 +92,8 @@ void loop()
 		{
             // Join LoRa network
 			LoRaWAN.join();
+            rgbLED.setPixelColor(0, rgbLED.Color(0, 50, 0)); // green
+            rgbLED.show();
 			break;
 		}
 		case DEVICE_STATE_SEND:
@@ -102,11 +104,18 @@ void loop()
             Serial.printf("Sending packet with id=%d, battery=%d\n", 
                 packet.id, 
                 packet.battery);
+            rgbLED.setPixelColor(0, rgbLED.Color(0, 0, 50)); // blue
+            rgbLED.show();
 
             // Blit packet struct into library buffer
             memcpy(&appData, &packet, min(sizeof(lora_packet_t), LORAWAN_APP_DATA_MAX_SIZE));
 			appDataSize = sizeof(lora_packet_t);
             LoRaWAN.send();
+            packet.id++;
+
+            delay(300);
+            rgbLED.setPixelColor(0, rgbLED.Color(0, 50, 0)); // green
+            rgbLED.show();
 
 			deviceState = DEVICE_STATE_CYCLE;
 			break;
@@ -136,7 +145,7 @@ void loop()
 // This function is referenced and required by the LoRa WAN library
 void downLinkDataHandle(McpsIndication_t *mcpsIndication)
 {
-    rgbLED.setPixelColor(0, rgbLED.Color(0, 0, 50)); // blue
+    rgbLED.setPixelColor(0, rgbLED.Color(50, 0, 50)); // pink
     rgbLED.show();
 
     // Print packet meta info

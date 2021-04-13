@@ -16,4 +16,6 @@ Copy `include/NetworkConfiguration.h.example` to `include/NetworkConfiguration.h
 
 Edit the `platformio.ini` file and change the `board_build.arduino.lorawan.region` to the correct frequency band for your country.
 
+Attach a serial monitor and read the Device EUI after a reset. Then set the device EUI in the TTN console, use OTAA and MAC 1.0.2 .
+
 Use the PlatformIO menu to compile and upload the code.

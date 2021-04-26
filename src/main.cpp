@@ -12,10 +12,14 @@
 
 #include "CubeCell_NeoPixel.h" // RGB LED
 #include "LoRaWan_APP.h" // LoRa WAN
+#include <Adafruit_Sensor.h> // Sensor base
+#include <DHT.h> // Temp & humidity sensor
+#include <DHT_U.h>
 
 
 // Auxiliary hardware drivers
 CubeCell_NeoPixel rgbLED(1, RGB, NEO_GRB + NEO_KHZ800);
+DHT_Unified dht(GPIO5, DHT11);
 
 
 // LoRa network configuration buffers
@@ -42,12 +46,19 @@ uint8_t appPort = 2; //!< Application port
 uint8_t confirmedNbTrials = 4; //!< Number of trials to transmit the frame if not acknowledged
 
 
+// Sensor buffers
+sensors_event_t dht_event;
+static char temp_str[8], humid_str[8];
+
+
 // Lora packet structure definition and buffer allocation
 // Force packed memory alignment to enable pointer cast to buffer
 struct __attribute__ ((packed)) lora_packet_t 
 { 
     uint8_t id; 
-    int16_t battery; 
+    int16_t battery;
+    float32 temperature;
+    float32 humidity;
 } static packet;
 
 
@@ -67,6 +78,9 @@ void setup()
     rgbLED.clear();
     rgbLED.setPixelColor(0, rgbLED.Color(50, 30, 0)); // yellow
     rgbLED.show();
+
+    // Setup sensors
+    dht.begin();
 
     // Setup LoRa system
     deviceState = DEVICE_STATE_INIT;
@@ -101,9 +115,17 @@ void loop()
             // Read battery voltage
             packet.battery = getBatteryVoltage();
 
-            Serial.printf("Sending packet with id=%d, battery=%d\n", 
-                packet.id, 
-                packet.battery);
+            // Read sensors
+            dht.temperature().getEvent(&dht_event);
+            packet.temperature = dht_event.temperature;
+            dht.humidity().getEvent(&dht_event);
+            packet.humidity = dht_event.relative_humidity;
+            
+            // Print packet for monitoring
+            dtostrf(packet.temperature, 7, 3, temp_str);
+            dtostrf(packet.humidity, 7, 3, humid_str);
+            Serial.printf("Sending packet with id=%d, battery=%d, temp=%s, humid=%s\n", 
+                packet.id, packet.battery, temp_str, humid_str);
             rgbLED.setPixelColor(0, rgbLED.Color(0, 0, 50)); // blue
             rgbLED.show();
 

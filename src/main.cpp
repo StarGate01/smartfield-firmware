@@ -10,17 +10,13 @@
 #include "HardwareConfiguration.h"
 #include "NetworkConfiguration.h"
 
-#include "CubeCell_NeoPixel.h" // RGB LED
 #include "LoRaWan_APP.h" // LoRa WAN
 #include <Adafruit_Sensor.h> // Sensor base
 #include <DHT.h> // Temp & humidity sensor
-#include <DHT_U.h>
 
 
 // Auxiliary hardware drivers
-CubeCell_NeoPixel rgbLED(1, RGB, NEO_GRB + NEO_KHZ800);
-DHT_Unified dht(GPIO5, DHT11);
-
+DHT dht(GPIO5, DHT22);
 
 // LoRa network configuration buffers
 // These symbols are required by the LoraWan library
@@ -47,7 +43,6 @@ uint8_t confirmedNbTrials = 4; //!< Number of trials to transmit the frame if no
 
 
 // Sensor buffers
-sensors_event_t dht_event;
 static char temp_str[8], humid_str[8];
 
 
@@ -69,15 +64,9 @@ void setup()
     // Serial
     Serial.begin(115200);
 
-    // Enable 3.3V auxiliary power output
+    // Disable 3.3V auxiliary power output
     pinMode(Vext, OUTPUT);
-    digitalWrite(Vext, LOW); 
-
-    // Initialize RGB LED
-    rgbLED.begin();
-    rgbLED.clear();
-    rgbLED.setPixelColor(0, rgbLED.Color(50, 30, 0)); // yellow
-    rgbLED.show();
+    digitalWrite(Vext, HIGH); 
 
     // Setup sensors
     dht.begin();
@@ -106,8 +95,6 @@ void loop()
 		{
             // Join LoRa network
 			LoRaWAN.join();
-            rgbLED.setPixelColor(0, rgbLED.Color(0, 50, 0)); // green
-            rgbLED.show();
 			break;
 		}
 		case DEVICE_STATE_SEND:
@@ -116,28 +103,20 @@ void loop()
             packet.battery = getBatteryVoltage();
 
             // Read sensors
-            dht.temperature().getEvent(&dht_event);
-            packet.temperature = dht_event.temperature;
-            dht.humidity().getEvent(&dht_event);
-            packet.humidity = dht_event.relative_humidity;
+            packet.temperature =  dht.readTemperature();
+            packet.humidity =  dht.readHumidity();
             
             // Print packet for monitoring
             dtostrf(packet.temperature, 7, 3, temp_str);
             dtostrf(packet.humidity, 7, 3, humid_str);
             Serial.printf("Sending packet with id=%d, battery=%d, temp=%s, humid=%s\n", 
                 packet.id, packet.battery, temp_str, humid_str);
-            rgbLED.setPixelColor(0, rgbLED.Color(0, 0, 50)); // blue
-            rgbLED.show();
 
             // Blit packet struct into library buffer
             memcpy(&appData, &packet, min(sizeof(lora_packet_t), LORAWAN_APP_DATA_MAX_SIZE));
 			appDataSize = sizeof(lora_packet_t);
             LoRaWAN.send();
             packet.id++;
-
-            delay(300);
-            rgbLED.setPixelColor(0, rgbLED.Color(0, 50, 0)); // green
-            rgbLED.show();
 
 			deviceState = DEVICE_STATE_CYCLE;
 			break;
@@ -167,9 +146,6 @@ void loop()
 // This function is referenced and required by the LoRa WAN library
 void downLinkDataHandle(McpsIndication_t *mcpsIndication)
 {
-    rgbLED.setPixelColor(0, rgbLED.Color(50, 0, 50)); // pink
-    rgbLED.show();
-
     // Print packet meta info
     Serial.printf("Received downlink: %s, RXSIZE %d, PORT %d, DATA: ",
         mcpsIndication->RxSlot ? "RXWIN2":"RXWIN1",
@@ -182,8 +158,4 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication)
         Serial.printf("%02X", mcpsIndication->Buffer[i]);
     }
     Serial.println();
-
-    delay(300);
-    rgbLED.setPixelColor(0, rgbLED.Color(0, 50, 0)); // back to green
-    rgbLED.show();
 }

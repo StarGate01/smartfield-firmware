@@ -13,10 +13,14 @@
 #include "LoRaWan_APP.h" // LoRa WAN
 #include <Adafruit_Sensor.h> // Sensor base
 #include <DHT.h> // Temp & humidity sensor
+#include <Wire.h>
+#include <SPI.h>
+#include "Adafruit_SHT31.h" // Soil sensor
 
 
 // Auxiliary hardware drivers
 DHT dht(GPIO5, DHT22);
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // LoRa network configuration buffers
 // These symbols are required by the LoraWan library
@@ -43,7 +47,7 @@ uint8_t confirmedNbTrials = 4; //!< Number of trials to transmit the frame if no
 
 
 // Sensor buffers
-static char temp_str[8], humid_str[8];
+static char temp_str[8], humid_str[8], temp_str2[8], humid_str2[8];
 
 
 // Lora packet structure definition and buffer allocation
@@ -54,6 +58,8 @@ struct __attribute__ ((packed)) lora_packet_t
     int16_t battery;
     float32 temperature;
     float32 humidity;
+    float32 soilTemperature;
+    float32 soilHumidity;
 } static packet;
 
 
@@ -64,12 +70,13 @@ void setup()
     // Serial
     Serial.begin(115200);
 
-    // Disable 3.3V auxiliary power output
+    // Disable 3.3V auxiliary power output (LED)
     pinMode(Vext, OUTPUT);
     digitalWrite(Vext, HIGH); 
 
     // Setup sensors
     dht.begin();
+    sht31.begin(0x44);
 
     // Setup LoRa system
     deviceState = DEVICE_STATE_INIT;
@@ -105,12 +112,19 @@ void loop()
             // Read sensors
             packet.temperature =  dht.readTemperature();
             packet.humidity =  dht.readHumidity();
+            packet.soilTemperature = sht31.readTemperature();
+            packet.soilHumidity = sht31.readHumidity();
             
             // Print packet for monitoring
-            dtostrf(packet.temperature, 7, 3, temp_str);
-            dtostrf(packet.humidity, 7, 3, humid_str);
-            Serial.printf("Sending packet with id=%d, battery=%d, temp=%s, humid=%s\n", 
-                packet.id, packet.battery, temp_str, humid_str);
+            if(Serial)
+            {
+                dtostrf(packet.temperature, 7, 3, temp_str);
+                dtostrf(packet.humidity, 7, 3, humid_str);
+                dtostrf(packet.soilTemperature, 7, 3, temp_str2);
+                dtostrf(packet.soilHumidity, 7, 3, humid_str2);
+                Serial.printf("Sending packet with id=%d, battery=%d, temp=%s, humid=%s, s_temp=%s, s_humid=%s\n", 
+                    packet.id, packet.battery, temp_str, humid_str, temp_str2, humid_str2);
+            }
 
             // Blit packet struct into library buffer
             memcpy(&appData, &packet, min(sizeof(lora_packet_t), LORAWAN_APP_DATA_MAX_SIZE));
@@ -146,16 +160,19 @@ void loop()
 // This function is referenced and required by the LoRa WAN library
 void downLinkDataHandle(McpsIndication_t *mcpsIndication)
 {
-    // Print packet meta info
-    Serial.printf("Received downlink: %s, RXSIZE %d, PORT %d, DATA: ",
-        mcpsIndication->RxSlot ? "RXWIN2":"RXWIN1",
-        mcpsIndication->BufferSize,
-        mcpsIndication->Port);
-
-    // Print packet data
-    for(uint8_t i = 0;i < mcpsIndication->BufferSize; i++) 
+    if(Serial)
     {
-        Serial.printf("%02X", mcpsIndication->Buffer[i]);
+        // Print packet meta info
+        Serial.printf("Received downlink: %s, RXSIZE %d, PORT %d, DATA: ",
+            mcpsIndication->RxSlot ? "RXWIN2":"RXWIN1",
+            mcpsIndication->BufferSize,
+            mcpsIndication->Port);
+
+        // Print packet data
+        for(uint8_t i = 0;i < mcpsIndication->BufferSize; i++) 
+        {
+            Serial.printf("%02X", mcpsIndication->Buffer[i]);
+        }
+        Serial.println();
     }
-    Serial.println();
 }

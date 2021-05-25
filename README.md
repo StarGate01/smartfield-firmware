@@ -25,3 +25,36 @@ Edit the `platformio.ini` file and change the `board_build.arduino.lorawan.regio
 Attach a serial monitor and read the Device EUI after a reset. Then set the device EUI in the TTN console, use OTAA and MAC 1.0.2 .
 
 Use the PlatformIO menu to compile and upload the code.
+
+### Payload Formatter
+
+```javascript
+function decodeInt16(bytes, offset)
+{
+  return (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset] & 0xFF));
+}
+
+function decodeFloat32(bytes, offset)
+{
+  var d = new DataView(new ArrayBuffer(4));
+  for(var i=0; i<4; i++) d.setUint8(i, bytes[offset + i]);
+  return d.getFloat32(0, true);
+}
+
+function decodeUplink(input) 
+{
+  return {
+    data: {
+      bytes: input.bytes,
+      id: input.bytes[0],
+      battery: decodeInt16(input.bytes, 1),
+      temperature: decodeFloat32(input.bytes, 3),
+      humidity: decodeFloat32(input.bytes, 7),
+      soilTemperature: decodeFloat32(input.bytes, 11),
+      soilHumidity: decodeFloat32(input.bytes, 15)
+    },
+    warnings: [],
+    errors: []
+  };
+}
+```
